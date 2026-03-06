@@ -320,9 +320,9 @@ public abstract class AWSSecretsManagerDriver implements Driver {
         int retryCount = 0;
         while (retryCount++ <= MAX_RETRY) {
             String secretString = secretCache.getSecretString(credentialsSecretId);
-            Properties updatedInfo = new Properties(info);
+            var updatedInfo = new Properties(info);
             try {
-                JsonNode jsonObject = mapper.readTree(secretString);
+                var jsonObject = mapper.readTree(secretString);
                 updatedInfo.setProperty("user", jsonObject.get("username").asString());
                 updatedInfo.setProperty("password", jsonObject.get("password").asString());
             } catch (JacksonException e) {
@@ -366,7 +366,7 @@ public abstract class AWSSecretsManagerDriver implements Driver {
                     throw new IllegalArgumentException("URL " + url + " is not a valid URL starting with scheme "
                             + SCHEME + " or a valid retrievable secret ID ");
                 }
-                JsonNode jsonObject = mapper.readTree(secretString);
+                var jsonObject = mapper.readTree(secretString);
                 String endpoint = jsonObject.get("host").asString();
                 JsonNode portNode = jsonObject.get("port");
                 String port = portNode == null ? null : portNode.asString();

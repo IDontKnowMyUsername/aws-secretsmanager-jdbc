@@ -12,9 +12,11 @@
  */
 package com.amazonaws.secretsmanager.sql;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -25,11 +27,12 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.amazonaws.secretsmanager.caching.SecretCache;
 import com.amazonaws.secretsmanager.caching.SecretCacheConfiguration;
@@ -42,6 +45,8 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilde
  * Tests for AWSSecretsManagerDriver. Uses a config file in the resources folder just to make sure it can read from
  * the file.
  */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class AWSSecretsManagerDriverTest extends TestClass {
 
     private AWSSecretsManagerDummyDriver sut;
@@ -63,49 +68,42 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
         // Instantiate mocks
         hasRefreshed = false;
-        MockitoAnnotations.openMocks(this);
-        Mockito.when(cache.getSecretString(Mockito.any(String.class))).thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) throws Throwable {
-                Object[] arguments = invocation.getArguments();
+        Mockito.when(cache.getSecretString(Mockito.any(String.class))).thenAnswer(invocation -> {
+            Object[] arguments = invocation.getArguments();
 
-                if (arguments != null && arguments.length > 0 && arguments[0] != null) {
-                    String secretId = (String) arguments[0];
-                    String returnUser = secretId;
-                    if (INVALID_USER.equals(secretId)) {
-                        return null;
-                    } else if (BAD_FORMAT_SECRET.equals(secretId)) {
-                        return "NotJSONFormat";
-                    } else if (NEEDS_REFRESH_SECRET.equals(secretId) || BAD_REFRESH_SECRET.equals(secretId)) {
-                        returnUser = hasRefreshed ? VALID_USER : DummyDriver.SQL_ERROR_USERNAME;
-                    } else if (INVALID_AFTER_REFRESH.equals(secretId)) {
-                        returnUser = DummyDriver.SQL_ERROR_USERNAME;
-                    }
-
-                    return String.format("{\"username\": \"%s\",\n\"password\": \"%s\",\n\"host\": \"%s\"}",
-                            returnUser, secretId, secretId);
+            if (arguments != null && arguments.length > 0 && arguments[0] != null) {
+                var secretId = (String) arguments[0];
+                String returnUser = secretId;
+                if (INVALID_USER.equals(secretId)) {
+                    return null;
+                } else if (BAD_FORMAT_SECRET.equals(secretId)) {
+                    return "NotJSONFormat";
+                } else if (NEEDS_REFRESH_SECRET.equals(secretId) || BAD_REFRESH_SECRET.equals(secretId)) {
+                    returnUser = hasRefreshed ? VALID_USER : DummyDriver.SQL_ERROR_USERNAME;
+                } else if (INVALID_AFTER_REFRESH.equals(secretId)) {
+                    returnUser = DummyDriver.SQL_ERROR_USERNAME;
                 }
 
-                return null;
+                return String.format("{\"username\": \"%s\",\n\"password\": \"%s\",\n\"host\": \"%s\"}",
+                        returnUser, secretId, secretId);
             }
+
+            return null;
         });
-        Mockito.when(cache.refreshNow(Mockito.any(String.class))).thenAnswer(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                Object[] arguments = invocation.getArguments();
+        Mockito.when(cache.refreshNow(Mockito.any(String.class))).thenAnswer(invocation -> {
+            Object[] arguments = invocation.getArguments();
 
-                if (arguments != null && arguments.length > 0 && arguments[0] != null) {
-                    String secretId = (String) arguments[0];
-                    if (BAD_REFRESH_SECRET.equals(secretId)) {
-                        return false;
-                    }
-
-                    hasRefreshed = true;
-                    return true;
+            if (arguments != null && arguments.length > 0 && arguments[0] != null) {
+                var secretId = (String) arguments[0];
+                if (BAD_REFRESH_SECRET.equals(secretId)) {
+                    return false;
                 }
 
-                return false;
+                hasRefreshed = true;
+                return true;
             }
+
+            return false;
         });
 
         // Instantiate the driver
@@ -138,7 +136,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
     @Test
     public void test_init_works_realDriverFromConfig() {
         System.setProperty("drivers.dummy.realDriverClass", "some.other.class");
-        AWSSecretsManagerDummyDriver sut2 = new AWSSecretsManagerDummyDriver(cache);
+        var sut2 = new AWSSecretsManagerDummyDriver(cache);
         assertEquals(getFieldFrom(sut2, "realDriverClass"), "some.other.class");
     }
 
@@ -168,25 +166,25 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_acceptsURL_returnsFalse_wrongURL() {
-        assertNotThrows(() -> assertFalse(sut.acceptsURL("jdbc-secretsmanager:wrongUrl")));
+        assertDoesNotThrow(() -> assertFalse(sut.acceptsURL("jdbc-secretsmanager:wrongUrl")));
         assertEquals(1, DummyDriver.acceptsURLCallCount);
     }
 
     @Test
     public void test_acceptsURL_returnsTrue_correctURL() {
-        assertNotThrows(() -> assertTrue(sut.acceptsURL("jdbc-secretsmanager:expectedUrl")));
+        assertDoesNotThrow(() -> assertTrue(sut.acceptsURL("jdbc-secretsmanager:expectedUrl")));
         assertEquals(1, DummyDriver.acceptsURLCallCount);
     }
 
     @Test
     public void test_acceptsURL_returnsFalse_JdbcUrl() {
-        assertNotThrows(() -> assertFalse(sut.acceptsURL("jdbc:expectedUrl")));
+        assertDoesNotThrow(() -> assertFalse(sut.acceptsURL("jdbc:expectedUrl")));
         assertEquals(0, DummyDriver.acceptsURLCallCount);
     }
 
     @Test
     public void test_acceptsURL_returnsTrue_secretId() {
-        assertNotThrows(() -> assertTrue(sut.acceptsURL("someSecretId")));
+        assertDoesNotThrow(() -> assertTrue(sut.acceptsURL("someSecretId")));
         assertEquals(0, DummyDriver.acceptsURLCallCount);
     }
 
@@ -201,22 +199,22 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_works_nullInfo() {
-        assertNotThrows(() -> sut.connect("jdbc-secretsmanager:expectedUrl", null));
+        assertDoesNotThrow(() -> sut.connect("jdbc-secretsmanager:expectedUrl", null));
         assertEquals(1, DummyDriver.connectCallCount);
     }
 
     @Test
     public void test_connect_works_nullUser() {
-        Properties props = new Properties();
-        assertNotThrows(() -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
+        var props = new Properties();
+        assertDoesNotThrow(() -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
         assertEquals(1, DummyDriver.connectCallCount);
     }
 
     @Test
     public void test_connect_works_valid_url() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", "user");
-        assertNotThrows(() -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
+        assertDoesNotThrow(() -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
         assertEquals(1, DummyDriver.connectCallCount);
     }
 
@@ -228,24 +226,24 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_works_secretId() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", "user");
-        assertNotThrows(() -> sut.connect("someSecretId", props));
+        assertDoesNotThrow(() -> sut.connect("someSecretId", props));
         assertEquals(1, DummyDriver.connectCallCount);
     }
 
     @Test
     public void test_connect_works_withSecretRefresh() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", NEEDS_REFRESH_SECRET);
         sut.exceptionIsDueToAuth = true;
-        assertNotThrows(() -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
+        assertDoesNotThrow(() -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
         assertEquals(2, DummyDriver.connectCallCount);
     }
 
     @Test
     public void test_connect_throws_afterRetryMax() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", INVALID_AFTER_REFRESH);
         sut.exceptionIsDueToAuth = true;
         assertThrows(SQLException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
@@ -254,7 +252,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_throws_withBadRefresh() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", BAD_REFRESH_SECRET);
         sut.exceptionIsDueToAuth = true;
         assertThrows(SQLException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
@@ -263,7 +261,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_rethrowsSQLException_onFailure() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", DummyDriver.SQL_ERROR_USERNAME);
         sut.exceptionIsDueToAuth = false;
         assertThrows(SQLException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
@@ -272,7 +270,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_rethrowsRuntimeException_onFailure() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", DummyDriver.RUNTIME_ERROR_USERNAME);
         sut.exceptionIsDueToAuth = false;
         assertThrows(RuntimeException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
@@ -281,7 +279,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_throws_badSecretId() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", "user");
         assertThrows(IllegalArgumentException.class, () -> sut.connect(INVALID_USER, props));
         assertEquals(0, DummyDriver.connectCallCount);
@@ -289,7 +287,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_throws_badlyFormattedSecretId() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", "user");
         assertThrows(RuntimeException.class, () -> sut.connect(BAD_FORMAT_SECRET, props));
         assertEquals(0, DummyDriver.connectCallCount);
@@ -297,7 +295,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_connect_throws_userBadlyFormattedSecretId() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("user", BAD_FORMAT_SECRET);
         assertThrows(RuntimeException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
         assertEquals(0, DummyDriver.connectCallCount);
@@ -329,7 +327,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
 
     @Test
     public void test_getParentLogger_propagatesToRealDriver() {
-        assertNotThrows(() -> assertEquals(null, sut.getParentLogger()));
+        assertDoesNotThrow(() -> assertEquals(null, sut.getParentLogger()));
         assertEquals(1, DummyDriver.getParentLoggerCallCount);
     }
 
@@ -340,8 +338,8 @@ public class AWSSecretsManagerDriverTest extends TestClass {
     @Test
     public void test_getPropertyInfo_propagatesToRealDriver() {
         String param1 = "jdbc-secretsmanager:expectedUrl";
-        Properties param2 = new Properties();
-        assertNotThrows(() -> Assertions.assertNull(sut.getPropertyInfo(param1, param2)));
+        var param2 = new Properties();
+        assertDoesNotThrow(() -> Assertions.assertNull(sut.getPropertyInfo(param1, param2)));
         assertEquals(1, DummyDriver.getPropertyInfoCallCount);
         String param1Expected = "jdbc:expectedUrl";
         assertEquals(param1Expected, DummyDriver.getPropertyInfoParam1);

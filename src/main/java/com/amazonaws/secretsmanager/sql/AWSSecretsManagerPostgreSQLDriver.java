@@ -120,18 +120,11 @@ public final class AWSSecretsManagerPostgreSQLDriver extends AWSSecretsManagerDr
 
     @Override
     public String constructUrlFromEndpointPortDatabase(String endpoint, String port, String dbname) {
-        String url = "jdbc:postgresql://" + endpoint;
-        if (StringUtils.isNotBlank(port)) {
-            url += ":" + port;
-        }
-
-        url += "/";
-
-        if (StringUtils.isNotBlank(dbname)) {
-            url += dbname;
-        }
-
-        return url;
+        var sb = new StringBuilder("jdbc:postgresql://").append(endpoint);
+        if (StringUtils.isNotBlank(port)) { sb.append(':').append(port); }
+        sb.append('/');
+        if (StringUtils.isNotBlank(dbname)) { sb.append(dbname); }
+        return sb.toString();
     }
 
     @Override

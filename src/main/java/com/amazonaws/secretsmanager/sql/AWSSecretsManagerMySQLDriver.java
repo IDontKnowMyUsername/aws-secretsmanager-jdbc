@@ -111,14 +111,10 @@ public final class AWSSecretsManagerMySQLDriver extends AWSSecretsManagerDriver 
 
     @Override
     public String constructUrlFromEndpointPortDatabase(String endpoint, String port, String dbname) {
-        String url = "jdbc:mysql://" + endpoint;
-        if (StringUtils.isNotBlank(port)) {
-            url += ":" + port;
-        }
-        if (StringUtils.isNotBlank(dbname)) {
-            url += "/" + dbname;
-        }
-        return url;
+        var sb = new StringBuilder("jdbc:mysql://").append(endpoint);
+        if (StringUtils.isNotBlank(port)) { sb.append(':').append(port); }
+        if (StringUtils.isNotBlank(dbname)) { sb.append('/').append(dbname); }
+        return sb.toString();
     }
 
     @Override

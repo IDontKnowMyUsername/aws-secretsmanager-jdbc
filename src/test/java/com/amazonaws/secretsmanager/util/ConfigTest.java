@@ -12,8 +12,10 @@
  */
 package com.amazonaws.secretsmanager.util;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.NoSuchElementException;
 import java.util.Properties;
@@ -34,16 +36,16 @@ public class ConfigTest extends TestClass {
     @Test
     public void test_loadConfigFrom_badFile() {
         System.setProperty("test", "asdfasdf");
-        assertNotThrows(() -> {
-            Config config = Config.loadConfigFrom("asdfasdf");
+        assertDoesNotThrow(() -> {
+            var config = Config.loadConfigFrom("asdfasdf");
             assertEquals("asdfasdf", config.getStringPropertyWithDefault("test", null));
         });
     }
 
     @Test
     public void test_loadConfigFrom_goodFile() {
-        assertNotThrows(() -> {
-            Config config = Config.loadConfigFrom(Config.CONFIG_FILE_NAME);
+        assertDoesNotThrow(() -> {
+            var config = Config.loadConfigFrom(Config.CONFIG_FILE_NAME);
             assertEquals("asfd", config.getStringPropertyWithDefault("testProperty", null));
         });
     }
@@ -55,8 +57,8 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_loadMainConfig_goodFile() {
-        assertNotThrows(() -> {
-            Config config = Config.loadMainConfig();
+        assertDoesNotThrow(() -> {
+            var config = Config.loadMainConfig();
             assertEquals("asfd", config.getStringPropertyWithDefault("testProperty", null));
         });
     }
@@ -70,17 +72,17 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getSubconfig_noSubproperies() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(null, config.getSubconfig("asdf"));
     }
 
     @Test
     public void test_getSubconfig_hasSubproperties_nullPrefix() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("asdf.hey", "hello");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
-        Config subconfig = config.getSubconfig("asdf");
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var subconfig = config.getSubconfig("asdf");
         assertFalse(subconfig.equals(null));
         assertEquals("hello", subconfig.getStringPropertyWithDefault("hey", null));
         assertEquals("asdf", getFieldFrom(subconfig, "prefix"));
@@ -88,10 +90,10 @@ public class ConfigTest extends TestClass {
 
     @Test
     public void test_getSubconfig_hasSubproperties_nonnullPrefix() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("asdf.hey", "hello");
-        Config config = (Config) callConstructorWithArguments(Config.class, "top", props);
-        Config subconfig = config.getSubconfig("asdf");
+        var config = (Config) callConstructorWithArguments(Config.class, "top", props);
+        var subconfig = config.getSubconfig("asdf");
         assertFalse(subconfig.equals(null));
         assertEquals("hello", subconfig.getStringPropertyWithDefault("hey", null));
         assertEquals("top.asdf", getFieldFrom(subconfig, "prefix"));
@@ -105,17 +107,17 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_fullPropertyName_nullPrefix() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("asdf.hey", "hello");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals("asdf.hey", config.fullPropertyName("asdf.hey"));
     }
 
     @Test
     public void test_fullPropertyName_nonnullPrefix() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("asdf.hey", "hello");
-        Config config = (Config) callConstructorWithArguments(Config.class, "top", props);
+        var config = (Config) callConstructorWithArguments(Config.class, "top", props);
         assertEquals("top.asdf.hey", config.fullPropertyName("asdf.hey"));
     }
 
@@ -127,16 +129,16 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getStringPropertyWithDefault_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "hello");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals("hello", config.getStringPropertyWithDefault("hey", "ho"));
     }
 
     @Test
     public void test_getStringPropertyWithDefault_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals("ho", config.getStringPropertyWithDefault("hey", "ho"));
     }
 
@@ -149,24 +151,24 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getIntPropertyWithDefault_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "2");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(2, config.getIntPropertyWithDefault("hey", 3));
     }
 
     @Test
     public void test_getIntPropertyWithDefault_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(3, config.getIntPropertyWithDefault("hey", 3));
     }
 
     @Test
     public void test_getIntPropertyWithDefault_propertySetBadly() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "asdf");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(PropertyException.class, () -> config.getIntPropertyWithDefault("hey", 3));
     }
 
@@ -179,24 +181,24 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getLongPropertyWithDefault_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "2");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(2, config.getLongPropertyWithDefault("hey", 3));
     }
 
     @Test
     public void test_getLongPropertyWithDefault_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(3, config.getLongPropertyWithDefault("hey", 3));
     }
 
     @Test
     public void test_getLongPropertyWithDefault_propertySetBadly() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "asdf");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(PropertyException.class, () -> config.getLongPropertyWithDefault("hey", 3));
     }
 
@@ -209,24 +211,24 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getClassPropertyWithDefault_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "com.amazonaws.secretsmanager.util.ConfigTest");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(this.getClass(), config.getClassPropertyWithDefault("hey", Object.class));
     }
 
     @Test
     public void test_getClassPropertyWithDefault_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(Object.class, config.getClassPropertyWithDefault("hey", Object.class));
     }
 
     @Test
     public void test_getClassPropertyWithDefault_propertySetBadly() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "comm.amazonaws.secretsmanager.util.ConfigTest");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(PropertyException.class, () -> config.getClassPropertyWithDefault("hey", Object.class));
     }
 
@@ -238,16 +240,16 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getRequiredStringProperty_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "hello");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals("hello", config.getRequiredStringProperty("hey"));
     }
 
     @Test
     public void test_getRequiredStringProperty_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(NoSuchElementException.class, () -> config.getRequiredStringProperty("hey"));
     }
 
@@ -260,24 +262,24 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getRequiredIntProperty_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "2");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(2, config.getRequiredIntProperty("hey"));
     }
 
     @Test
     public void test_getRequiredIntProperty_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(NoSuchElementException.class, () -> config.getRequiredIntProperty("hey"));
     }
 
     @Test
     public void test_getRequiredIntProperty_propertySetBadly() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "asdf");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(PropertyException.class, () -> config.getRequiredIntProperty("hey"));
     }
 
@@ -290,24 +292,24 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getRequiredLongProperty_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "2");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(2, config.getRequiredLongProperty("hey"));
     }
 
     @Test
     public void test_getRequiredLongProperty_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(NoSuchElementException.class, () -> config.getRequiredLongProperty("hey"));
     }
 
     @Test
     public void test_getRequiredLongProperty_propertySetBadly() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "asdf");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(PropertyException.class, () -> config.getRequiredLongProperty("hey"));
     }
 
@@ -320,24 +322,24 @@ public class ConfigTest extends TestClass {
      ******************************************************************************************************************/
     @Test
     public void test_getRequiredClassProperty_propertySet() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "com.amazonaws.secretsmanager.util.ConfigTest");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertEquals(this.getClass(), config.getRequiredClassProperty("hey"));
     }
 
     @Test
     public void test_getRequiredClassProperty_propertyNotSet() {
-        Properties props = new Properties();
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var props = new Properties();
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(NoSuchElementException.class, () -> config.getRequiredClassProperty("hey"));
     }
 
     @Test
     public void test_getRequiredClassProperty_propertySetBadly() {
-        Properties props = new Properties();
+        var props = new Properties();
         props.setProperty("hey", "comm.amazonaws.secretsmanager.util.ConfigTest");
-        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(PropertyException.class, () -> config.getRequiredClassProperty("hey"));
     }
 }

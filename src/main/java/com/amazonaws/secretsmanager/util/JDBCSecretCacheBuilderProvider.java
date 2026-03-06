@@ -62,7 +62,7 @@ public class JDBCSecretCacheBuilderProvider {
      */
     public SecretsManagerClientBuilder build() {
 
-        SecretsManagerClientBuilder builder = SecretsManagerClient.builder();
+        var builder = SecretsManagerClient.builder();
 
         //Retrieve data from information sources.
         String vpcEndpointUrl = configFile.getStringPropertyWithDefault(AWSSecretsManagerDriver.PROPERTY_PREFIX+"."+PROPERTY_VPC_ENDPOINT_URL, null);

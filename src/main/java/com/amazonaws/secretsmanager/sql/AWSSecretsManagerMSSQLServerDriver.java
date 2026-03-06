@@ -115,14 +115,10 @@ public final class AWSSecretsManagerMSSQLServerDriver extends AWSSecretsManagerD
 
     @Override
     public String constructUrlFromEndpointPortDatabase(String endpoint, String port, String dbname) {
-        String url = "jdbc:sqlserver://" + endpoint;
-        if (StringUtils.isNotBlank(port)) {
-            url += ":" + port;
-        }
-        if (StringUtils.isNotBlank(dbname)) {
-            url += ";databaseName=" + dbname + ";";
-        }
-        return url;
+        var sb = new StringBuilder("jdbc:sqlserver://").append(endpoint);
+        if (StringUtils.isNotBlank(port)) { sb.append(':').append(port); }
+        if (StringUtils.isNotBlank(dbname)) { sb.append(";databaseName=").append(dbname).append(';'); }
+        return sb.toString();
     }
 
     @Override

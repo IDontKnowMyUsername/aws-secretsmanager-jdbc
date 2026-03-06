@@ -15,8 +15,8 @@ package com.amazonaws.secretsmanager.util;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 
@@ -82,15 +82,10 @@ public class TestClass {
     }
 
     public Constructor<?> getConstructorWithNArguments(Class<?> clazz, int n) {
-        Constructor<?>[] ctors = clazz.getDeclaredConstructors();
-        Constructor<?> ctor = null;
-        for (int i = 0; i < ctors.length; i++) {
-            ctor = ctors[i];
-            if (ctor.getGenericParameterTypes().length == n) {
-                break;
-            }
-        }
-        return ctor;
+        return Arrays.stream(clazz.getDeclaredConstructors())
+                .filter(ctor -> ctor.getGenericParameterTypes().length == n)
+                .findFirst()
+                .orElse(null);
     }
 
     public Object newInstance(Constructor<?> ctor, Object... initargs) {
@@ -121,7 +116,7 @@ public class TestClass {
 
     public Object callMethodWithArguments(Object object, String methodName, Object... args) {
         try {
-            LinkedList<Method> allMethods = new LinkedList<>();
+            var allMethods = new ArrayList<Method>();
             Class<?> clazz = object.getClass();
             while (!clazz.equals(Object.class)) {
                 Method[] methods = clazz.getDeclaredMethods();
@@ -145,45 +140,6 @@ public class TestClass {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
-        }
-    }
-
-    public interface throwingRunnable {
-        void run() throws Exception;
-    }
-
-    public void assertThrows(Class<? extends Exception> exception, throwingRunnable code) {
-        try {
-            code.run();
-            throw new RuntimeException("Should have thrown a " + exception.getName() + " but threw nothing.");
-        } catch (Exception e) {
-            if (!exception.isAssignableFrom(e.getClass())) {
-                e.printStackTrace();
-                throw new RuntimeException(
-                        "Should have thrown a " + exception.getName() + " but threw " + e.getClass().getName());
-            }
-        }
-    }
-
-    public void assertThrows(Exception exception, throwingRunnable code) {
-        try {
-            code.run();
-            throw new RuntimeException("Should have thrown a " + exception.getMessage() + " but threw nothing.");
-        } catch (Exception e) {
-            if (!exception.equals(e)) {
-                e.printStackTrace();
-                throw new RuntimeException(
-                        "Should have thrown a " + exception.getMessage() + " but threw " + e.getClass().getName());
-            }
-        }
-    }
-
-    public void assertNotThrows(throwingRunnable code) {
-        try {
-            code.run();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Should not have thrown, but threw " + e.getClass().getName());
         }
     }
 }

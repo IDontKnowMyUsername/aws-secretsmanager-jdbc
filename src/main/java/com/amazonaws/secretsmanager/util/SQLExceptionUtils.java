@@ -1,8 +1,9 @@
 package com.amazonaws.secretsmanager.util;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 
 /**
  * SQL Exception Utilities
@@ -19,9 +20,8 @@ public class SQLExceptionUtils {
      *      and getErrorCode matches the error code.  Otherwise, false.
      */
     public static boolean unwrapAndCheckForCode(Throwable t, int errorCode) {
-        final List<Throwable> list = new ArrayList<>();
-        while (t != null && !list.contains(t)) {
-            list.add(t);
+        final Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        while (t != null && seen.add(t)) {
             if (t instanceof SQLException sqle && sqle.getErrorCode() == errorCode) {
                 return true;
             }

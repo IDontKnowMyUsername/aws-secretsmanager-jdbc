@@ -61,7 +61,7 @@ public final class Config {
      * @return Properties                                       The properties that this object should serve.
      */
     private static Properties loadPropertiesFromConfigFile(String resourceName) {
-        Properties newConfig = new Properties(System.getProperties());
+        var newConfig = new Properties(System.getProperties());
 
         try (InputStream configFile = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
             if (configFile != null) {
@@ -178,11 +178,7 @@ public final class Config {
      */
     public String getStringPropertyWithDefault(String propertyName, String defaultValue) {
         String propertyValue = config.getProperty(propertyName);
-        if (propertyValue == null) {
-            return defaultValue;
-        } else {
-            return propertyValue;
-        }
+        return propertyValue != null ? propertyValue : defaultValue;
     }
 
     /**

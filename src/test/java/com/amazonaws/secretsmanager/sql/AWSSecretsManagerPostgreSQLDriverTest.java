@@ -20,8 +20,9 @@ import java.sql.SQLException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazonaws.secretsmanager.caching.SecretCache;
 import com.amazonaws.secretsmanager.util.TestClass;
@@ -29,6 +30,7 @@ import com.amazonaws.secretsmanager.util.TestClass;
 /**
  * Tests for the PostgreSQL Driver.
  */
+@ExtendWith(MockitoExtension.class)
 public class AWSSecretsManagerPostgreSQLDriverTest extends TestClass {
 
     private AWSSecretsManagerPostgreSQLDriver sut;
@@ -39,7 +41,6 @@ public class AWSSecretsManagerPostgreSQLDriverTest extends TestClass {
     @BeforeEach
     public void setup() {
         System.setProperty("drivers.postgresql.realDriverClass", "com.amazonaws.secretsmanager.sql.DummyDriver");
-        MockitoAnnotations.openMocks(this);
         try {
             sut = new AWSSecretsManagerPostgreSQLDriver(cache);
         } catch (Exception e) {

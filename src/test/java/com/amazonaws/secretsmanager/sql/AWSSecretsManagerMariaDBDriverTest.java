@@ -20,8 +20,9 @@ import java.sql.SQLException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazonaws.secretsmanager.caching.SecretCache;
 import com.amazonaws.secretsmanager.util.TestClass;
@@ -29,6 +30,7 @@ import com.amazonaws.secretsmanager.util.TestClass;
 /**
  * Tests for the MariaDB Driver.
  */
+@ExtendWith(MockitoExtension.class)
 public class AWSSecretsManagerMariaDBDriverTest extends TestClass {
 
     private AWSSecretsManagerMariaDBDriver sut;
@@ -39,7 +41,6 @@ public class AWSSecretsManagerMariaDBDriverTest extends TestClass {
     @BeforeEach
     public void setup() {
         System.setProperty("drivers.mariadb.realDriverClass", "com.amazonaws.secretsmanager.sql.DummyDriver");
-        MockitoAnnotations.openMocks(this);
         try {
             sut = new AWSSecretsManagerMariaDBDriver(cache);
         } catch (Exception e) {

@@ -16,8 +16,9 @@ import com.amazonaws.secretsmanager.caching.SecretCache;
 import com.amazonaws.secretsmanager.util.TestClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.sql.SQLException;
 
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for the Db2 Driver.
  */
+@ExtendWith(MockitoExtension.class)
 public class AWSSecretsManagerDb2DriverTest extends TestClass {
 
     private AWSSecretsManagerDb2Driver sut;
@@ -38,7 +40,6 @@ public class AWSSecretsManagerDb2DriverTest extends TestClass {
     @BeforeEach
     public void setup() {
         System.setProperty("drivers.db2.realDriverClass", "com.amazonaws.secretsmanager.sql.DummyDriver");
-        MockitoAnnotations.openMocks(this);
         try {
             sut = new AWSSecretsManagerDb2Driver(cache);
         } catch (Exception e) {
