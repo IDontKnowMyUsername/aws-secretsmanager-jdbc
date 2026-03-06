@@ -14,6 +14,7 @@ package com.amazonaws.secretsmanager.sql;
 
 import com.amazonaws.secretsmanager.caching.SecretCache;
 import com.amazonaws.secretsmanager.util.TestClass;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,11 @@ public class AWSSecretsManagerDb2DriverTest extends TestClass {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @AfterEach
+    public void cleanup() {
+        System.clearProperty("drivers.db2.realDriverClass");
     }
 
     @Test

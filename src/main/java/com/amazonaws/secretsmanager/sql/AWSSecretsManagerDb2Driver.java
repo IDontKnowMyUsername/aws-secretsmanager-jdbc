@@ -115,11 +115,6 @@ public final class AWSSecretsManagerDb2Driver extends AWSSecretsManagerDriver {
 
     @Override
     public String getDefaultDriverClass() {
-        try {
-            Class.forName("com.ibm.db2.jcc.DB2Driver", false, this.getClass().getClassLoader());
-            return "com.ibm.db2.jcc.DB2Driver";
-        } catch (ClassNotFoundException e) {
-            return "com.ibm.db2.jcc.DB2Driver";
-        }
+        return "com.ibm.db2.jcc.DB2Driver";
     }
 }

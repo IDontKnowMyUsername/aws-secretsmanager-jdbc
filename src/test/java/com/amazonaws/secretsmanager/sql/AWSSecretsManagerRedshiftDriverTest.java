@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.SQLException;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +49,11 @@ public class AWSSecretsManagerRedshiftDriverTest extends TestClass {
         }
     }
 
+    @AfterEach
+    public void cleanup() {
+        System.clearProperty("drivers.redshift.realDriverClass");
+    }
+
     @Test
     public void test_getPropertySubprefix() {
         assertEquals("redshift", sut.getPropertySubprefix());
@@ -63,6 +69,13 @@ public class AWSSecretsManagerRedshiftDriverTest extends TestClass {
     @Test
     public void test_isExceptionDueToAuthenticationError_returnsFalse_wrongSQLException() {
         SQLException e = new SQLException("", "28P02");
+
+        assertFalse(sut.isExceptionDueToAuthenticationError(e));
+    }
+
+    @Test
+    public void test_isExceptionDueToAuthenticationError_returnsFalse_nullSQLState() {
+        SQLException e = new SQLException("error", (String) null);
 
         assertFalse(sut.isExceptionDueToAuthenticationError(e));
     }

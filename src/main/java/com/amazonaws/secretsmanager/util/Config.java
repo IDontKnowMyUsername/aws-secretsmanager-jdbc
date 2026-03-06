@@ -36,9 +36,9 @@ public final class Config {
      */
     public static final String CONFIG_FILE_NAME = "secretsmanager.properties";
 
-    private Properties config;
+    private final Properties config;
 
-    private String prefix;
+    private final String prefix;
 
     /**
      * Private constructor to load the properties.

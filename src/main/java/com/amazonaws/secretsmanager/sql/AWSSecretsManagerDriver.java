@@ -102,17 +102,25 @@ public abstract class AWSSecretsManagerDriver implements Driver {
     public static final String PROPERTY_PREFIX = "drivers";
 
     /**
-     * Message to return on the RuntimeException when secret string is invalid json.
+     * Message to return on the SQLException when secret string is invalid json.
      */
     public static final String INVALID_SECRET_STRING_JSON = "Could not parse SecretString JSON";
 
-    private SecretCache secretCache;
+    private static final String JSON_KEY_USERNAME = "username";
+    private static final String JSON_KEY_PASSWORD = "password";
+    private static final String JSON_KEY_HOST = "host";
+    private static final String JSON_KEY_PORT = "port";
+    private static final String JSON_KEY_DBNAME = "dbname";
+
+    private final SecretCache secretCache;
 
     private String realDriverClass;
 
     private Config config;
 
-    private ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    private volatile boolean driverLoaded;
 
     /**
      * Constructs the driver setting the properties from the properties file using system properties as defaults.
@@ -184,8 +192,12 @@ public abstract class AWSSecretsManagerDriver implements Driver {
      *                                                          <code>realDriverClass</code>
      */
     private void loadRealDriver() {
+        if (driverLoaded) {
+            return;
+        }
         try {
             Class.forName(this.realDriverClass);
+            driverLoaded = true;
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Could not load real driver with name, \"" + this.realDriverClass + "\".",
                                             e);
@@ -323,25 +335,28 @@ public abstract class AWSSecretsManagerDriver implements Driver {
             var updatedInfo = new Properties(info);
             try {
                 var jsonObject = mapper.readTree(secretString);
-                updatedInfo.setProperty("user", jsonObject.get("username").asString());
-                updatedInfo.setProperty("password", jsonObject.get("password").asString());
+                JsonNode usernameNode = jsonObject.get(JSON_KEY_USERNAME);
+                JsonNode passwordNode = jsonObject.get(JSON_KEY_PASSWORD);
+                if (usernameNode == null || passwordNode == null) {
+                    throw new SQLException("Secret must contain '" + JSON_KEY_USERNAME
+                            + "' and '" + JSON_KEY_PASSWORD + "' fields");
+                }
+                updatedInfo.setProperty("user", usernameNode.asString());
+                updatedInfo.setProperty("password", passwordNode.asString());
             } catch (JacksonException e) {
-                // Most likely to occur in the event that the data is not JSON.
-                // Or the secret's username and/or password fields have been
-                // removed entirely. Either scenario is most often a user error.
-                throw new RuntimeException(INVALID_SECRET_STRING_JSON);
+                throw new SQLException(INVALID_SECRET_STRING_JSON, e);
             }
 
             try {
                 return getWrappedDriver().connect(unwrappedUrl, updatedInfo);
-            } catch (Exception e) {
+            } catch (SQLException e) {
                 if (isExceptionDueToAuthenticationError(e)) {
                     boolean refreshSuccess = this.secretCache.refreshNow(credentialsSecretId);
                     if (!refreshSuccess) {
-                        throw(e);
+                        throw e;
                     }
                 } else {
-                    throw(e);
+                    throw e;
                 }
             }
         }
@@ -367,14 +382,18 @@ public abstract class AWSSecretsManagerDriver implements Driver {
                             + SCHEME + " or a valid retrievable secret ID ");
                 }
                 var jsonObject = mapper.readTree(secretString);
-                String endpoint = jsonObject.get("host").asString();
-                JsonNode portNode = jsonObject.get("port");
+                JsonNode hostNode = jsonObject.get(JSON_KEY_HOST);
+                if (hostNode == null) {
+                    throw new SQLException("Secret must contain a '" + JSON_KEY_HOST + "' field");
+                }
+                String endpoint = hostNode.asString();
+                JsonNode portNode = jsonObject.get(JSON_KEY_PORT);
                 String port = portNode == null ? null : portNode.asString();
-                JsonNode dbnameNode = jsonObject.get("dbname");
+                JsonNode dbnameNode = jsonObject.get(JSON_KEY_DBNAME);
                 String dbname = dbnameNode == null ? null : dbnameNode.asString();
                 unwrappedUrl = constructUrlFromEndpointPortDatabase(endpoint, port, dbname);
             } catch (JacksonException e) {
-                throw new RuntimeException(INVALID_SECRET_STRING_JSON);
+                throw new SQLException(INVALID_SECRET_STRING_JSON, e);
             }
         }
 
@@ -384,7 +403,7 @@ public abstract class AWSSecretsManagerDriver implements Driver {
                 return connectWithSecret(unwrappedUrl, info, credentialsSecretId);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
+                throw new SQLException("Connection attempt interrupted", e);
             }
         } else {
             return getWrappedDriver().connect(unwrappedUrl, info);

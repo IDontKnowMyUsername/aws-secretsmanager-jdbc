@@ -24,6 +24,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,21 +117,28 @@ public class AWSSecretsManagerDriverTest extends TestClass {
         }
     }
 
+    @AfterEach
+    public void cleanup() {
+        System.clearProperty("drivers.dummy.realDriverClass");
+    }
+
     /*******************************************************************************************************************
      * init Tests
      ******************************************************************************************************************/
 
     @Test
-    public void test_init_constructor_null_params() {
-        try {
-            new AWSSecretsManagerDummyDriver((SecretsManagerClientBuilder) null);
-        } catch (Exception e) { }
-        try {
-            new AWSSecretsManagerDummyDriver((SecretCacheConfiguration) null);
-        } catch (Exception e) { }
-        try {
-            new AWSSecretsManagerDummyDriver((SecretsManagerClient) null);
-        } catch (Exception e) { }
+    public void test_init_constructor_null_builder() {
+        assertThrows(Exception.class, () -> new AWSSecretsManagerDummyDriver((SecretsManagerClientBuilder) null));
+    }
+
+    @Test
+    public void test_init_constructor_null_cacheConfig() {
+        assertDoesNotThrow(() -> new AWSSecretsManagerDummyDriver((SecretCacheConfiguration) null));
+    }
+
+    @Test
+    public void test_init_constructor_null_client() {
+        assertDoesNotThrow(() -> new AWSSecretsManagerDummyDriver((SecretsManagerClient) null));
     }
 
     @Test
@@ -289,7 +297,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
     public void test_connect_throws_badlyFormattedSecretId() {
         var props = new Properties();
         props.setProperty("user", "user");
-        assertThrows(RuntimeException.class, () -> sut.connect(BAD_FORMAT_SECRET, props));
+        assertThrows(SQLException.class, () -> sut.connect(BAD_FORMAT_SECRET, props));
         assertEquals(0, DummyDriver.connectCallCount);
     }
 
@@ -297,7 +305,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
     public void test_connect_throws_userBadlyFormattedSecretId() {
         var props = new Properties();
         props.setProperty("user", BAD_FORMAT_SECRET);
-        assertThrows(RuntimeException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
+        assertThrows(SQLException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
         assertEquals(0, DummyDriver.connectCallCount);
     }
 
