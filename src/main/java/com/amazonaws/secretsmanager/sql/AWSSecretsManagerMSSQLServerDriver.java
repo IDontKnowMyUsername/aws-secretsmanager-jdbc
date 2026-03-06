@@ -106,8 +106,7 @@ public final class AWSSecretsManagerMSSQLServerDriver extends AWSSecretsManagerD
 
     @Override
     public boolean isExceptionDueToAuthenticationError(Exception e) {
-        if (e instanceof SQLException) {
-            SQLException sqle = (SQLException) e;
+        if (e instanceof SQLException sqle) {
             int errorCode = sqle.getErrorCode();
             return errorCode == LOGIN_FAILED;
         }

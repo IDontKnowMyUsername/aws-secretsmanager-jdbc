@@ -18,7 +18,6 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -278,16 +277,12 @@ public abstract class AWSSecretsManagerDriver implements Driver {
      */
     public Driver getWrappedDriver() {
         loadRealDriver();
-        Enumeration<Driver> availableDrivers = DriverManager.getDrivers();
-        while (availableDrivers.hasMoreElements()) {
-            Driver driver = availableDrivers.nextElement();
-            if (driver.getClass().getName().equals(this.realDriverClass)) {
-                return driver;
-            }
-        }
-        throw new IllegalStateException("No Driver has been registered with name, " + this.realDriverClass
-                                        + ". Please check your system properties or " + Config.CONFIG_FILE_NAME
-                                        + " for typos. Also ensure that the Driver registers itself.");
+        return DriverManager.drivers()
+                .filter(d -> d.getClass().getName().equals(this.realDriverClass))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No Driver has been registered with name, "
+                        + this.realDriverClass + ". Please check your system properties or "
+                        + Config.CONFIG_FILE_NAME + " for typos. Also ensure that the Driver registers itself."));
     }
 
     @Override
@@ -388,6 +383,7 @@ public abstract class AWSSecretsManagerDriver implements Driver {
             try {
                 return connectWithSecret(unwrappedUrl, info, credentialsSecretId);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
         } else {

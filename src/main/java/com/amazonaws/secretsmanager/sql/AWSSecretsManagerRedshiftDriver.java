@@ -106,8 +106,7 @@ public final class AWSSecretsManagerRedshiftDriver extends AWSSecretsManagerDriv
 
     @Override
     public boolean isExceptionDueToAuthenticationError(Exception e) {
-        if (e instanceof SQLException) {
-            SQLException sqle = (SQLException) e;
+        if (e instanceof SQLException sqle) {
             String sqlState = sqle.getSQLState();
             return sqlState.equals(ACCESS_DENIED_FOR_USER_USING_PASSWORD_TO_DATABASE);
         }

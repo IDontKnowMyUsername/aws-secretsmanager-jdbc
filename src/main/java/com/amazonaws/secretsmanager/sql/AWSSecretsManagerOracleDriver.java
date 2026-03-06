@@ -121,8 +121,7 @@ public final class AWSSecretsManagerOracleDriver extends AWSSecretsManagerDriver
 
     @Override
     public boolean isExceptionDueToAuthenticationError(Exception e) {
-        if (e instanceof SQLException) {
-            SQLException sqle = (SQLException) e;
+        if (e instanceof SQLException sqle) {
             int errorCode = sqle.getErrorCode();
             return errorCode == USER_CREDENTIALS_DO_NOT_MATCH
                 || errorCode == INVALID_USERNAME_OR_PASSWORD

@@ -14,11 +14,9 @@ package com.amazonaws.secretsmanager.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Enumeration;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Properties;
-
-import lombok.EqualsAndHashCode;
 
 /**
  * <p>
@@ -31,7 +29,6 @@ import lombok.EqualsAndHashCode;
  * The default file that properties will be fetched from is referred to by <code>Config.CONFIG_FILE_NAME</code>.
  * </p>
  */
-@EqualsAndHashCode
 public final class Config {
 
     /**
@@ -66,13 +63,9 @@ public final class Config {
     private static Properties loadPropertiesFromConfigFile(String resourceName) {
         Properties newConfig = new Properties(System.getProperties());
 
-        InputStream configFile;
-
-        try {
-            configFile = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName);
-            if(configFile != null) {
+        try (InputStream configFile = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
+            if (configFile != null) {
                 newConfig.load(configFile);
-                configFile.close();
             }
         } catch (IOException e) {
             throw new PropertyException("An error occured when loading the property file, " + CONFIG_FILE_NAME, e);
@@ -113,7 +106,7 @@ public final class Config {
      *                                                          the <code>subprefix</code>.
      */
     private boolean isSubproperty(String propertyName, String subprefix) {
-        return propertyName.indexOf(subprefix + ".") == 0;
+        return propertyName.startsWith(subprefix + ".");
     }
 
     /**
@@ -137,12 +130,9 @@ public final class Config {
      *
      * @return Config                                           Configuration properties for the subprefix
      */
-    @SuppressWarnings("unchecked")
     public Config getSubconfig(String subprefix) {
-        Enumeration<String> propertyNames = (Enumeration<String>) config.propertyNames();
         Properties subconfig = null;
-        while (propertyNames.hasMoreElements()) {
-            String name = propertyNames.nextElement();
+        for (String name : config.stringPropertyNames()) {
             if (isSubproperty(name, subprefix)) {
                 if (subconfig == null) {
                     subconfig = new Properties();
@@ -351,5 +341,21 @@ public final class Config {
     public Class<?> getRequiredClassProperty(String propertyName) {
         throwIfPropertyIsNotSet(propertyName);
         return getClassPropertyWithDefault(propertyName, null);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Config c)) {
+            return false;
+        }
+        return Objects.equals(config, c.config) && Objects.equals(prefix, c.prefix);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(config, prefix);
     }
 }
