@@ -69,7 +69,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
             public String answer(InvocationOnMock invocation) throws Throwable {
                 Object[] arguments = invocation.getArguments();
 
-                if (arguments != null && arguments.length > 0 && arguments[0] != null){
+                if (arguments != null && arguments.length > 0 && arguments[0] != null) {
                     String secretId = (String) arguments[0];
                     String returnUser = secretId;
                     if (INVALID_USER.equals(secretId)) {
@@ -82,7 +82,8 @@ public class AWSSecretsManagerDriverTest extends TestClass {
                         returnUser = DummyDriver.SQL_ERROR_USERNAME;
                     }
 
-                    return String.format("{\"username\": \"%s\",\n\"password\": \"%s\",\n\"host\": \"%s\"}", returnUser, secretId, secretId);
+                    return String.format("{\"username\": \"%s\",\n\"password\": \"%s\",\n\"host\": \"%s\"}",
+                            returnUser, secretId, secretId);
                 }
 
                 return null;
@@ -93,7 +94,7 @@ public class AWSSecretsManagerDriverTest extends TestClass {
             public Boolean answer(InvocationOnMock invocation) throws Throwable {
                 Object[] arguments = invocation.getArguments();
 
-                if (arguments != null && arguments.length > 0 && arguments[0] != null){
+                if (arguments != null && arguments.length > 0 && arguments[0] != null) {
                     String secretId = (String) arguments[0];
                     if (BAD_REFRESH_SECRET.equals(secretId)) {
                         return false;
@@ -125,13 +126,13 @@ public class AWSSecretsManagerDriverTest extends TestClass {
     public void test_init_constructor_null_params() {
         try {
             new AWSSecretsManagerDummyDriver((SecretsManagerClientBuilder) null);
-        } catch (Exception e) {}
+        } catch (Exception e) { }
         try {
             new AWSSecretsManagerDummyDriver((SecretCacheConfiguration) null);
-        } catch (Exception e) {}
+        } catch (Exception e) { }
         try {
             new AWSSecretsManagerDummyDriver((SecretsManagerClient) null);
-        } catch (Exception e) {}
+        } catch (Exception e) { }
     }
 
     @Test

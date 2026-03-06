@@ -52,8 +52,7 @@ public final class AWSSecretsManagerRedshiftDriver extends AWSSecretsManagerDriv
     }
 
     /**
-     * Constructs the driver setting the properties from the properties file using
-     * system properties as defaults.
+     * Constructs the driver setting the properties from the properties file using system properties as defaults.
      * Instantiates the secret cache with default options.
      */
     public AWSSecretsManagerRedshiftDriver() {
@@ -61,44 +60,40 @@ public final class AWSSecretsManagerRedshiftDriver extends AWSSecretsManagerDriv
     }
 
     /**
-     * Constructs the driver setting the properties from the properties file using
-     * system properties as defaults.
+     * Constructs the driver setting the properties from the properties file using system properties as defaults.
      * Uses the passed in SecretCache.
      *
-     * @param cache Secret cache to use to retrieve secrets
+     * @param cache                                             Secret cache to use to retrieve secrets
      */
     public AWSSecretsManagerRedshiftDriver(SecretCache cache) {
         super(cache);
     }
 
     /**
-     * Constructs the driver setting the properties from the properties file using
-     * system properties as defaults.
+     * Constructs the driver setting the properties from the properties file using system properties as defaults.
      * Instantiates the secret cache with the passed in client builder.
      *
-     * @param builder Builder used to instantiate cache
+     * @param builder                                           Builder used to instantiate cache
      */
     public AWSSecretsManagerRedshiftDriver(SecretsManagerClientBuilder builder) {
         super(builder);
     }
 
     /**
-     * Constructs the driver setting the properties from the properties file using
-     * system properties as defaults.
+     * Constructs the driver setting the properties from the properties file using system properties as defaults.
      * Instantiates the secret cache with the provided AWS Secrets Manager client.
      *
-     * @param client AWS Secrets Manager client to instantiate cache
+     * @param client                                            AWS Secrets Manager client to instantiate cache
      */
     public AWSSecretsManagerRedshiftDriver(SecretsManagerClient client) {
         super(client);
     }
 
     /**
-     * Constructs the driver setting the properties from the properties file using
-     * system properties as defaults.
+     * Constructs the driver setting the properties from the properties file using system properties as defaults.
      * Instantiates the secret cache with the provided cache configuration.
      *
-     * @param cacheConfig Cache configuration to instantiate cache
+     * @param cacheConfig                                       Cache configuration to instantiate cache
      */
     public AWSSecretsManagerRedshiftDriver(SecretCacheConfiguration cacheConfig) {
         super(cacheConfig);

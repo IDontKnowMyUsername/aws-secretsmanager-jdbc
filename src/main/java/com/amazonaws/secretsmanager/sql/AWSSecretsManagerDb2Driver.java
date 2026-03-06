@@ -15,6 +15,7 @@ package com.amazonaws.secretsmanager.sql;
 import com.amazonaws.secretsmanager.caching.SecretCache;
 import com.amazonaws.secretsmanager.caching.SecretCacheConfiguration;
 import com.amazonaws.secretsmanager.util.SQLExceptionUtils;
+
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilder;
 import software.amazon.awssdk.utils.StringUtils;
@@ -25,7 +26,7 @@ import software.amazon.awssdk.utils.StringUtils;
  * </p>
  *
  * <p>
- * Configuration properties are specified using the "db2" subprefix (e.g drivers.mysql.realDriverClass).
+ * Configuration properties are specified using the "db2" subprefix (e.g drivers.db2.realDriverClass).
  * </p>
  */
 public final class AWSSecretsManagerDb2Driver extends AWSSecretsManagerDriver {

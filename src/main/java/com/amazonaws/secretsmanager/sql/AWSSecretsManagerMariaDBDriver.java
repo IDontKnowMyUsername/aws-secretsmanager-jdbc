@@ -26,10 +26,6 @@ import software.amazon.awssdk.utils.StringUtils;
  * </p>
  *
  * <p>
- * This will also work for MariaDB, as the error codes are the same.
- * </p>
- *
- * <p>
  * Configuration properties are specified using the "mariadb" subprefix (e.g drivers.mariadb.realDriverClass).
  * </p>
  */

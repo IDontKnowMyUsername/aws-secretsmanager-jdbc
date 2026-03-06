@@ -20,7 +20,7 @@ public class SQLExceptionUtils {
      */
     public static boolean unwrapAndCheckForCode(Throwable t, int errorCode) {
         final List<Throwable> list = new ArrayList<>();
-        while (t != null && list.contains(t) == false) {
+        while (t != null && !list.contains(t)) {
             list.add(t);
             if ( t instanceof SQLException && ((SQLException)t).getErrorCode() == errorCode ) {
                 return true;
