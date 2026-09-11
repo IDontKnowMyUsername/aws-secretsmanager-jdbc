@@ -106,6 +106,8 @@ public abstract class AWSSecretsManagerDriver implements Driver {
      */
     public static final String INVALID_SECRET_STRING_JSON = "Could not parse SecretString JSON";
 
+    private static final Logger LOGGER = Logger.getLogger(AWSSecretsManagerDriver.class.getName());
+
     private static final String JSON_KEY_USERNAME = "username";
     private static final String JSON_KEY_PASSWORD = "password";
     private static final String JSON_KEY_HOST = "host";
@@ -353,8 +355,17 @@ public abstract class AWSSecretsManagerDriver implements Driver {
                 if (isExceptionDueToAuthenticationError(e)) {
                     boolean refreshSuccess = this.secretCache.refreshNow(credentialsSecretId);
                     if (!refreshSuccess) {
+                        LOGGER.warning(() -> "Authentication failed with the cached secret '" + credentialsSecretId
+                                + "' and the forced refresh from AWS Secrets Manager also failed, so the stale "
+                                + "credentials are being kept. Check the process's AWS credentials (expired session "
+                                + "token, missing secretsmanager:GetSecretValue) before suspecting the database. "
+                                + "Original error: " + e.getMessage());
                         throw e;
                     }
+                    final int attempt = retryCount;
+                    LOGGER.info(() -> "Authentication failed with the cached secret '" + credentialsSecretId
+                            + "'; refreshed it from AWS Secrets Manager and retrying (attempt " + attempt
+                            + " of " + MAX_RETRY + ")");
                 } else {
                     throw e;
                 }
@@ -362,6 +373,9 @@ public abstract class AWSSecretsManagerDriver implements Driver {
         }
 
         // Max retries reached
+        LOGGER.warning(() -> "Authentication still failing for secret '" + credentialsSecretId + "' after "
+                + MAX_RETRY + " refreshes from AWS Secrets Manager; the secret's password no longer matches the "
+                + "database (rotation half-applied, or the secret points at a different user)");
         throw new SQLException("Connect failed to authenticate: reached max connection retries");
     }
 
