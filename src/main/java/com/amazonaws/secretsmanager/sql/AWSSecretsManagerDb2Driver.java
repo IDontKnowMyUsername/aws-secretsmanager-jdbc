@@ -51,7 +51,8 @@ public final class AWSSecretsManagerDb2Driver extends AWSSecretsManagerDriver {
     public static final String SUBPREFIX = "db2";
 
     static {
-        AWSSecretsManagerDriver.register(new AWSSecretsManagerDb2Driver());
+        // The constructor registers the instance with DriverManager.
+        new AWSSecretsManagerDb2Driver();
     }
 
     /**

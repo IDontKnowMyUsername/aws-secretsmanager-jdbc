@@ -19,6 +19,7 @@ import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -119,7 +120,15 @@ public abstract class AWSSecretsManagerDriver implements Driver {
     private static final Pattern INVALID_DBNAME_PATTERN = Pattern.compile(".*[?#&;\\\\\\s].*");
     private static final Pattern DIGITS_ONLY_PATTERN = Pattern.compile("\\d+");
 
-    private final SecretCache secretCache;
+    /**
+     * Builds the secret cache on first use. The default constructor runs from the vendor drivers' static
+     * initializers, so building the AWS client there (region lookup, credentials, native HTTP client) would turn
+     * any environment problem into an <code>ExceptionInInitializerError</code> at class-load time. Deferring it
+     * lets the failure surface as an <code>SQLException</code> from <code>connect</code> instead.
+     */
+    private final Supplier<SecretCache> secretCacheSupplier;
+
+    private volatile SecretCache secretCache;
 
     private String realDriverClass;
 
@@ -131,10 +140,10 @@ public abstract class AWSSecretsManagerDriver implements Driver {
 
     /**
      * Constructs the driver setting the properties from the properties file using system properties as defaults.
-     * Instantiates the secret cache with default options.
+     * Instantiates the secret cache with default options on first use.
      */
     protected AWSSecretsManagerDriver() {
-        this(new JDBCSecretCacheBuilderProvider().build());
+        this(() -> new SecretCache(new JDBCSecretCacheBuilderProvider().build()));
     }
 
     /**
@@ -144,7 +153,12 @@ public abstract class AWSSecretsManagerDriver implements Driver {
      * @param cache                                             Secret cache to use to retrieve secrets
      */
     protected AWSSecretsManagerDriver(SecretCache cache) {
+        this(() -> cache);
         this.secretCache = cache;
+    }
+
+    private AWSSecretsManagerDriver(Supplier<SecretCache> secretCacheSupplier) {
+        this.secretCacheSupplier = secretCacheSupplier;
 
         setProperties();
         AWSSecretsManagerDriver.register(this);
@@ -215,7 +229,60 @@ public abstract class AWSSecretsManagerDriver implements Driver {
      * Called when the driver is deregistered to cleanup resources.
      */
     private static void shutdown(AWSSecretsManagerDriver driver) {
-        driver.secretCache.close();
+        SecretCache cache = driver.secretCache;
+        if (cache != null) {
+            cache.close();
+        }
+    }
+
+    /**
+     * Returns the secret cache, building it on first use.
+     *
+     * @throws SQLException                                     If the cache (and so the AWS client) could not be
+     *                                                          built, for example because no region is configured.
+     */
+    private SecretCache secretCache() throws SQLException {
+        SecretCache cache = secretCache;
+        if (cache == null) {
+            synchronized (this) {
+                cache = secretCache;
+                if (cache == null) {
+                    try {
+                        cache = secretCacheSupplier.get();
+                    } catch (RuntimeException e) {
+                        throw new SQLException("Could not create the AWS Secrets Manager client. Check the AWS "
+                                + "region and credentials configuration.", e);
+                    }
+                    secretCache = cache;
+                }
+            }
+        }
+        return cache;
+    }
+
+    /**
+     * Fetches a secret's string value, translating AWS SDK and cache failures into <code>SQLException</code> so
+     * callers of <code>connect</code> see the exception type the JDBC contract promises.
+     *
+     * @param secretId                                          The friendly name or ARN of the secret.
+     *
+     * @return String                                           The secret string, never null or blank.
+     *
+     * @throws SQLException                                     If the secret could not be retrieved or is empty.
+     */
+    private String fetchSecretString(String secretId) throws SQLException {
+        String secretString;
+        try {
+            secretString = secretCache().getSecretString(secretId);
+        } catch (RuntimeException e) {
+            throw new SQLException("Could not retrieve secret '" + secretId + "' from AWS Secrets Manager: "
+                    + e.getMessage(), e);
+        }
+        if (StringUtils.isBlank(secretString)) {
+            throw new SQLException("Secret '" + secretId + "' has no SecretString value. It must be a JSON "
+                    + "string secret, not a binary secret.");
+        }
+        return secretString;
     }
 
     /**
@@ -304,6 +371,18 @@ public abstract class AWSSecretsManagerDriver implements Driver {
                         + Config.CONFIG_FILE_NAME + " for typos. Also ensure that the Driver registers itself."));
     }
 
+    /**
+     * Same as <code>getWrappedDriver</code> but reports a missing driver as an <code>SQLException</code>, for use
+     * on the JDBC entry points.
+     */
+    private Driver wrappedDriver() throws SQLException {
+        try {
+            return getWrappedDriver();
+        } catch (IllegalStateException e) {
+            throw new SQLException(e.getMessage(), e);
+        }
+    }
+
     @Override
     public boolean acceptsURL(String url) throws SQLException {
         if (url == null) {
@@ -311,7 +390,7 @@ public abstract class AWSSecretsManagerDriver implements Driver {
         }
 
         if (url.startsWith(SCHEME)) {
-            return getWrappedDriver().acceptsURL(unwrapUrl(url));
+            return wrappedDriver().acceptsURL(unwrapUrl(url));
         } else if (url.startsWith("jdbc:")) {
             return false;
         } else {
@@ -336,9 +415,9 @@ public abstract class AWSSecretsManagerDriver implements Driver {
      */
     private Connection connectWithSecret(String unwrappedUrl, Properties info, String credentialsSecretId)
             throws SQLException, InterruptedException {
-        int retryCount = 0;
-        while (retryCount++ <= MAX_RETRY) {
-            String secretString = secretCache.getSecretString(credentialsSecretId);
+        // One initial attempt plus MAX_RETRY retries, each retry preceded by a forced secret refresh.
+        for (int attempt = 1; attempt <= MAX_RETRY + 1; attempt++) {
+            String secretString = fetchSecretString(credentialsSecretId);
             var updatedInfo = new Properties(info);
             try {
                 var jsonObject = mapper.readTree(secretString);
@@ -355,33 +434,58 @@ public abstract class AWSSecretsManagerDriver implements Driver {
             }
 
             try {
-                return getWrappedDriver().connect(unwrappedUrl, updatedInfo);
+                return wrappedDriver().connect(unwrappedUrl, updatedInfo);
             } catch (SQLException e) {
-                if (isExceptionDueToAuthenticationError(e)) {
-                    boolean refreshSuccess = this.secretCache.refreshNow(credentialsSecretId);
-                    if (!refreshSuccess) {
-                        LOGGER.warning(() -> "Authentication failed with the cached secret '" + credentialsSecretId
-                                + "' and the forced refresh from AWS Secrets Manager also failed, so the stale "
-                                + "credentials are being kept. Check the process's AWS credentials (expired session "
-                                + "token, missing secretsmanager:GetSecretValue) before suspecting the database. "
-                                + "Original error: " + e.getMessage());
-                        throw e;
-                    }
-                    final int attempt = retryCount;
-                    LOGGER.info(() -> "Authentication failed with the cached secret '" + credentialsSecretId
-                            + "'; refreshed it from AWS Secrets Manager and retrying (attempt " + attempt
-                            + " of " + MAX_RETRY + ")");
-                } else {
+                if (!isExceptionDueToAuthenticationError(e)) {
                     throw e;
                 }
+                if (attempt > MAX_RETRY) {
+                    LOGGER.warning(() -> "Authentication still failing for secret '" + credentialsSecretId
+                            + "' after " + MAX_RETRY + " refreshes from AWS Secrets Manager; the secret's password "
+                            + "no longer matches the database (rotation half-applied, or the secret points at a "
+                            + "different user)");
+                    throw new SQLException("Connect failed to authenticate: reached max connection retries", e);
+                }
+                boolean refreshSuccess = secretCache().refreshNow(credentialsSecretId);
+                if (!refreshSuccess) {
+                    LOGGER.warning(() -> "Authentication failed with the cached secret '" + credentialsSecretId
+                            + "' and the forced refresh from AWS Secrets Manager also failed, so the stale "
+                            + "credentials are being kept. Check the process's AWS credentials (expired session "
+                            + "token, missing secretsmanager:GetSecretValue) before suspecting the database. "
+                            + "Original error: " + e.getMessage());
+                    throw e;
+                }
+                final int retry = attempt;
+                LOGGER.info(() -> "Authentication failed with the cached secret '" + credentialsSecretId
+                        + "'; refreshed it from AWS Secrets Manager and retrying (retry " + retry
+                        + " of " + MAX_RETRY + ")");
             }
         }
+        throw new IllegalStateException("unreachable: retry loop exits by return or throw");
+    }
 
-        // Max retries reached
-        LOGGER.warning(() -> "Authentication still failing for secret '" + credentialsSecretId + "' after "
-                + MAX_RETRY + " refreshes from AWS Secrets Manager; the secret's password no longer matches the "
-                + "database (rotation half-applied, or the secret points at a different user)");
-        throw new SQLException("Connect failed to authenticate: reached max connection retries");
+    /**
+     * Turns the URL handed to the JDBC entry points into one the real driver accepts: either by swapping the
+     * scheme, or by treating it as a secret ID and building the URL from that secret's host, port and dbname.
+     */
+    private String resolveUrl(String url) throws SQLException {
+        if (url.startsWith(SCHEME)) {
+            return unwrapUrl(url);
+        }
+        try {
+            String secretString = fetchSecretString(url);
+            var jsonObject = mapper.readTree(secretString);
+            JsonNode hostNode = jsonObject.get(JSON_KEY_HOST);
+            String endpoint = hostNode == null ? null : hostNode.asString();
+            JsonNode portNode = jsonObject.get(JSON_KEY_PORT);
+            String port = portNode == null ? null : portNode.asString();
+            JsonNode dbnameNode = jsonObject.get(JSON_KEY_DBNAME);
+            String dbname = dbnameNode == null ? null : dbnameNode.asString();
+            validateSecretFields(endpoint, port, dbname);
+            return constructUrlFromEndpointPortDatabase(endpoint, port, dbname);
+        } catch (JacksonException e) {
+            throw new SQLException(INVALID_SECRET_STRING_JSON, e);
+        }
     }
 
     /**
@@ -410,29 +514,7 @@ public abstract class AWSSecretsManagerDriver implements Driver {
             return null;
         }
 
-        String unwrappedUrl = "";
-        if (url.startsWith(SCHEME)) {
-            unwrappedUrl = unwrapUrl(url);
-        } else {
-            try {
-                String secretString = secretCache.getSecretString(url);
-                if (StringUtils.isBlank(secretString)) {
-                    throw new IllegalArgumentException("URL " + url + " is not a valid URL starting with scheme "
-                            + SCHEME + " or a valid retrievable secret ID ");
-                }
-                var jsonObject = mapper.readTree(secretString);
-                JsonNode hostNode = jsonObject.get(JSON_KEY_HOST);
-                String endpoint = hostNode == null ? null : hostNode.asString();
-                JsonNode portNode = jsonObject.get(JSON_KEY_PORT);
-                String port = portNode == null ? null : portNode.asString();
-                JsonNode dbnameNode = jsonObject.get(JSON_KEY_DBNAME);
-                String dbname = dbnameNode == null ? null : dbnameNode.asString();
-                validateSecretFields(endpoint, port, dbname);
-                unwrappedUrl = constructUrlFromEndpointPortDatabase(endpoint, port, dbname);
-            } catch (JacksonException e) {
-                throw new SQLException(INVALID_SECRET_STRING_JSON, e);
-            }
-        }
+        String unwrappedUrl = resolveUrl(url);
 
         if (info != null && info.getProperty("user") != null) {
             String credentialsSecretId = info.getProperty("user");
@@ -443,7 +525,7 @@ public abstract class AWSSecretsManagerDriver implements Driver {
                 throw new SQLException("Connection attempt interrupted", e);
             }
         } else {
-            return getWrappedDriver().connect(unwrappedUrl, info);
+            return wrappedDriver().connect(unwrappedUrl, info);
         }
     }
 
@@ -464,7 +546,10 @@ public abstract class AWSSecretsManagerDriver implements Driver {
 
     @Override
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
-        return getWrappedDriver().getPropertyInfo(unwrapUrl(url), info);
+        if (!acceptsURL(url)) {
+            return new DriverPropertyInfo[0];
+        }
+        return wrappedDriver().getPropertyInfo(resolveUrl(url), info);
     }
 
     @Override

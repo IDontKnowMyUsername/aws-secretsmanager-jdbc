@@ -16,7 +16,7 @@
   <artifactId>aws-secretsmanager-jdbc</artifactId>
   <packaging>jar</packaging>
   <name>AWS Secrets Manager SQL Connection Library</name>
-  <version>2.1.4</version>
+  <version>2.2.0</version>
   <description>The AWS Secrets Manager SQL Connection Library for Java enables Java developers to easily
     connect to SQL databases using secrets stored in AWS Secrets Manager.
   </description>
@@ -66,6 +66,8 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>aws-crt-client</artifactId>
       <version>2.54.19</version>
+      <!-- Only needed when drivers.postQuantumTlsEnabled=true; consumers add it themselves. -->
+      <optional>true</optional>
     </dependency>
 
     <dependency>
@@ -117,7 +119,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.6.0</version>
         <configuration>
-          <argLine>@{argLine} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+          <argLine>@{argLine} -XX:+EnableDynamicAgentLoading -Xshare:off --enable-native-access=ALL-UNNAMED</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -127,6 +129,20 @@
         <configuration>
           <release>21</release>
           <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.2</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <!-- Stable JPMS name without a module-info.java: aws-secretsmanager-caching-java has no stable
+                   module name, so an explicit descriptor could not require it safely. -->
+              <Automatic-Module-Name>com.amazonaws.secretsmanager.jdbc</Automatic-Module-Name>
+            </manifestEntries>
+          </archive>
         </configuration>
       </plugin>
       <plugin>
@@ -273,10 +289,23 @@
                   <shadedArtifactAttached>true</shadedArtifactAttached>
                   <shadedClassifierName>shaded</shadedClassifierName>
                   <createDependencyReducedPom>false</createDependencyReducedPom>
+                  <filters>
+                    <filter>
+                      <!-- Dependency module descriptors would describe the wrong module in the merged jar. -->
+                      <artifact>*:*</artifact>
+                      <excludes>
+                        <exclude>module-info.class</exclude>
+                        <exclude>META-INF/versions/*/module-info.class</exclude>
+                      </excludes>
+                    </filter>
+                  </filters>
                   <transformers>
                     <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                     <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                       <mainClass>com.amazonaws.secretsmanager.sql.AWSSecretsManagerDriver</mainClass>
+                      <manifestEntries>
+                        <Automatic-Module-Name>com.amazonaws.secretsmanager.jdbc</Automatic-Module-Name>
+                      </manifestEntries>
                     </transformer>
                   </transformers>
                 </configuration>

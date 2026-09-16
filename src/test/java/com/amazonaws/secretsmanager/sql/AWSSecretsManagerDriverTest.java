@@ -289,8 +289,34 @@ public class AWSSecretsManagerDriverTest extends TestClass {
     public void test_connect_throws_badSecretId() {
         var props = new Properties();
         props.setProperty("user", "user");
-        assertThrows(IllegalArgumentException.class, () -> sut.connect(INVALID_USER, props));
+        assertThrows(SQLException.class, () -> sut.connect(INVALID_USER, props));
         assertEquals(0, DummyDriver.connectCallCount);
+    }
+
+    @Test
+    public void test_connect_wrapsSdkFailure_inSQLException() throws Exception {
+        Mockito.when(cache.getSecretString("boom"))
+                .thenThrow(software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException
+                        .builder().message("no such secret").build());
+        var props = new Properties();
+        props.setProperty("user", "boom");
+        var e = assertThrows(SQLException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
+        assertTrue(e.getCause() instanceof software.amazon.awssdk.core.exception.SdkException);
+        assertEquals(0, DummyDriver.connectCallCount);
+    }
+
+    @Test
+    public void test_connect_throws_SQLException_whenCredentialsSecretMissing() {
+        var props = new Properties();
+        props.setProperty("user", INVALID_USER);
+        assertThrows(SQLException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", props));
+        assertEquals(0, DummyDriver.connectCallCount);
+    }
+
+    @Test
+    public void test_connect_throws_SQLException_whenRealDriverMissing() {
+        setFieldFrom(sut, "realDriverClass", "some.bad.class");
+        assertThrows(SQLException.class, () -> sut.connect("jdbc-secretsmanager:expectedUrl", new Properties()));
     }
 
     @Test
@@ -352,6 +378,19 @@ public class AWSSecretsManagerDriverTest extends TestClass {
         String param1Expected = "jdbc:expectedUrl";
         assertEquals(param1Expected, DummyDriver.getPropertyInfoParam1);
         assertSame(param2, DummyDriver.getPropertyInfoParam2);
+    }
+
+    @Test
+    public void test_getPropertyInfo_resolvesSecretIdUrl() {
+        assertDoesNotThrow(() -> sut.getPropertyInfo("user", new Properties()));
+        assertEquals(1, DummyDriver.getPropertyInfoCallCount);
+        assertEquals("mysuperconnectionurl", DummyDriver.getPropertyInfoParam1);
+    }
+
+    @Test
+    public void test_getPropertyInfo_returnsEmpty_forForeignJdbcUrl() throws SQLException {
+        assertEquals(0, sut.getPropertyInfo("jdbc:other://x", new Properties()).length);
+        assertEquals(0, DummyDriver.getPropertyInfoCallCount);
     }
 
     /*******************************************************************************************************************

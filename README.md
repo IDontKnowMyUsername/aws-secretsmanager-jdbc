@@ -1,7 +1,6 @@
 # AWS Secrets Manager JDBC Library
 
-[![Java Build](https://github.com/aws/aws-secretsmanager-jdbc/actions/workflows/CI.yml/badge.svg?event=push)](https://github.com/aws/aws-secretsmanager-jdbc/actions/workflows/CI.yml)
-[![Coverage](https://codecov.io/gh/aws/aws-secretsmanager-jdbc/branch/v2/graph/badge.svg?token=hCl7eBaSwn)](https://codecov.io/gh/aws/aws-secretsmanager-jdbc)
+[![Java Build](https://github.com/IDontKnowMyUsername/aws-secretsmanager-jdbc/actions/workflows/CI.yml/badge.svg?event=push)](https://github.com/IDontKnowMyUsername/aws-secretsmanager-jdbc/actions/workflows/CI.yml)
 
 Amazon is a small indie company and can't be expected to update the entirety of their software. 
 The **AWS Secrets Manager JDBC Library** enables Java developers to easily connect to SQL databases using secrets stored in AWS Secrets Manager.
@@ -17,22 +16,22 @@ This library is licensed under the Apache 2.0 License.
 
 ## Building from Source
 
-After you've downloaded the code from GitHub, you can build it using Maven.
+After you've downloaded the code from GitHub, you can build it using Maven. This fork requires **Java 21 or newer** (the upstream library targets Java 8).
 
 - To disable GPG signing in the build, use this command: `mvn clean install -Dgpg.skip=true`
 - To build the default (non-shaded) JAR, use this command: `mvn clean install`
 - To build the shaded (uber) JAR with all dependencies included, use this command: `mvn clean install -Pshade`
-  The shaded JAR will be generated in the `target/` directory with the `-shaded` classifier, e.g.: `target/aws-secretsmanager-jdbc-2.0.3-shaded.jar`
+  The shaded JAR will be generated in the `target/` directory with the `-shaded` classifier, e.g.: `target/aws-secretsmanager-jdbc-2.2.0-shaded.jar`
 
 ## Usage
 
-The recommended way to use the SQL Connection Library is to consume it from Maven. The latest released version can be found at: https://mvnrepository.com/artifact/com.amazonaws.secretsmanager/aws-secretsmanager-jdbc
+The recommended way to use the SQL Connection Library is to consume it from Maven. The latest released version can be found at: https://central.sonatype.com/artifact/io.github.idontknowmyusername/aws-secretsmanager-jdbc
 
 ```xml
 <dependency>
     <groupId>io.github.idontknowmyusername</groupId>
     <artifactId>aws-secretsmanager-jdbc</artifactId>
-    <version>2.1.4</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
@@ -125,6 +124,7 @@ drivers.region= #The region to use.
 ```text
 drivers.postQuantumTlsEnabled=true
 ```
+This needs `software.amazon.awssdk:aws-crt-client` on your classpath. It is an optional dependency of this library, so add it to your own project when you enable the flag; the driver fails with a clear message if it is missing.
 For more information about Post-Quantum TLS in the AWS SDK, see the [AWS SDK for Java documentation](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/http-configuration.html#post-quantum-tls).
 
 **NOTE**: PQ-TLS uses the AWS Common Runtime (CRT) which relies on system libraries and may not work as expected on macOS or Windows at this time ([ref](https://github.com/awslabs/aws-crt-java#tls-behavior)).

@@ -63,7 +63,11 @@ public final class Config {
     private static Properties loadPropertiesFromConfigFile(String resourceName) {
         var newConfig = new Properties(System.getProperties());
 
-        try (InputStream configFile = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        if (loader == null) {
+            loader = Config.class.getClassLoader();
+        }
+        try (InputStream configFile = loader.getResourceAsStream(resourceName)) {
             if (configFile != null) {
                 newConfig.load(configFile);
             }
@@ -278,8 +282,9 @@ public final class Config {
 
         // Validate boolean values
         if (!"true".equalsIgnoreCase(propertyValue) && !"false".equalsIgnoreCase(propertyValue)) {
-            throw new IllegalArgumentException("Invalid boolean value '" + propertyValue +
-                                            "' for property '" + propertyName + "'. Expected 'true' or 'false'.");
+            throw new PropertyException(fullPropertyName(propertyName) + " must be 'true' or 'false' but was '"
+                                        + propertyValue + "'. Please check " + Config.CONFIG_FILE_NAME
+                                        + " or your system properties for typos.");
         }
 
         return Boolean.parseBoolean(propertyValue);

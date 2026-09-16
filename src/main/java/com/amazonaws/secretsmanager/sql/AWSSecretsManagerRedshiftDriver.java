@@ -69,7 +69,8 @@ public final class AWSSecretsManagerRedshiftDriver extends AWSSecretsManagerDriv
     public static final String SUBPREFIX = "redshift";
 
     static {
-        AWSSecretsManagerDriver.register(new AWSSecretsManagerRedshiftDriver());
+        // The constructor registers the instance with DriverManager.
+        new AWSSecretsManagerRedshiftDriver();
     }
 
     /**

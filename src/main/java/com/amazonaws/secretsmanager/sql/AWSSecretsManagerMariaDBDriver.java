@@ -44,7 +44,8 @@ public final class AWSSecretsManagerMariaDBDriver extends AWSSecretsManagerDrive
     public static final String SUBPREFIX = "mariadb";
 
     static {
-        AWSSecretsManagerDriver.register(new AWSSecretsManagerMariaDBDriver());
+        // The constructor registers the instance with DriverManager.
+        new AWSSecretsManagerMariaDBDriver();
     }
 
     /**

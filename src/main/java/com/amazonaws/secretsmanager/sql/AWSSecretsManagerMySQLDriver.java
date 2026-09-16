@@ -48,7 +48,8 @@ public final class AWSSecretsManagerMySQLDriver extends AWSSecretsManagerDriver 
     public static final String SUBPREFIX = "mysql";
 
     static {
-        AWSSecretsManagerDriver.register(new AWSSecretsManagerMySQLDriver());
+        // The constructor registers the instance with DriverManager.
+        new AWSSecretsManagerMySQLDriver();
     }
 
     /**

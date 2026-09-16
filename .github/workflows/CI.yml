@@ -2,7 +2,7 @@ name: Java Build
 
 on:
   push:
-    branches: [master, v2]
+    branches: [master, v2, v2-refactor]
   pull_request:
     types: [opened, synchronize, ready_for_review]
 
@@ -36,5 +36,6 @@ jobs:
       - name: Codecov
         uses: codecov/codecov-action@v6
         with:
-          fail_ci_if_error: true
+          # Coverage upload must not fail the build: this fork has no Codecov OIDC trust configured.
+          fail_ci_if_error: false
           use_oidc: true

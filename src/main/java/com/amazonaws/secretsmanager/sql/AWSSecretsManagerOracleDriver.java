@@ -63,7 +63,8 @@ public final class AWSSecretsManagerOracleDriver extends AWSSecretsManagerDriver
     public static final String SUBPREFIX = "oracle";
 
     static {
-        AWSSecretsManagerDriver.register(new AWSSecretsManagerOracleDriver());
+        // The constructor registers the instance with DriverManager.
+        new AWSSecretsManagerOracleDriver();
     }
 
     /**

@@ -381,8 +381,7 @@ public class ConfigTest extends TestClass {
         props.setProperty("hey", "yes");
         Config config = (Config) callConstructorWithArguments(Config.class, null, props);
 
-        // Expect IllegalArgumentException for invalid boolean values
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(PropertyException.class, () -> {
             config.getBooleanPropertyWithDefault("hey", false);
         });
     }

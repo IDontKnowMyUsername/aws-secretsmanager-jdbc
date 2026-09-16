@@ -4,9 +4,6 @@
 "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
 
 <module name="Checker">
-  <module name="BeforeExecutionExclusionFileFilter">
-    <property name="fileNamePattern" value="module\-info\.java$"/>
-  </module>
   <module name="FileTabCharacter"/>
   <module name="TreeWalker">
     <module name="UnusedImports"/>

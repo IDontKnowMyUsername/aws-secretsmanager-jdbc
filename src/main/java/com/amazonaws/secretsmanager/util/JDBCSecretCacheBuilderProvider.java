@@ -81,7 +81,14 @@ public class JDBCSecretCacheBuilderProvider {
 
         // Configure Post-Quantum TLS if enabled
         if (postQuantumTlsEnabled) {
-            builder.httpClientBuilder(AwsCrtHttpClient.builder().postQuantumTlsEnabled(true));
+            try {
+                builder.httpClientBuilder(AwsCrtHttpClient.builder().postQuantumTlsEnabled(true));
+            } catch (NoClassDefFoundError e) {
+                // aws-crt-client is an optional dependency; only consumers that turn this flag on need it.
+                throw new PropertyException(AWSSecretsManagerDriver.PROPERTY_PREFIX + "."
+                        + PROPERTY_POST_QUANTUM_TLS_ENABLED + "=true requires software.amazon.awssdk:aws-crt-client "
+                        + "on the classpath.", e);
+            }
         }
 
         // Apply settings to our builder configuration.

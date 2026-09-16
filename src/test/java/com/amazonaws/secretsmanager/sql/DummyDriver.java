@@ -106,6 +106,7 @@ public class DummyDriver implements Driver {
         getMinorVersionCallCount = 0;
         getParentLoggerCallCount = 0;
         jdbcCompliantCallCount = 0;
+        getPropertyInfoCallCount = 0;
         getPropertyInfoParam1 = null;
         getPropertyInfoParam2 = null;
     }

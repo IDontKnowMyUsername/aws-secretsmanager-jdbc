@@ -57,7 +57,8 @@ public final class AWSSecretsManagerMSSQLServerDriver extends AWSSecretsManagerD
     public static final String SUBPREFIX = "sqlserver";
 
     static {
-        AWSSecretsManagerDriver.register(new AWSSecretsManagerMSSQLServerDriver());
+        // The constructor registers the instance with DriverManager.
+        new AWSSecretsManagerMSSQLServerDriver();
     }
 
     /**
