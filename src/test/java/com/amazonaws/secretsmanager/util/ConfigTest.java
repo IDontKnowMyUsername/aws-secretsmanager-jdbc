@@ -342,4 +342,48 @@ public class ConfigTest extends TestClass {
         var config = (Config) callConstructorWithArguments(Config.class, null, props);
         assertThrows(PropertyException.class, () -> config.getRequiredClassProperty("hey"));
     }
+
+    /*******************************************************************************************************************
+     * getBooleanPropertyWithDefault Tests
+     *
+     * has it set to true
+     * has it set to false
+     * doesn't have it
+     * set to invalid value
+     ******************************************************************************************************************/
+    @Test
+    public void test_getBooleanPropertyWithDefault_propertySetTrue() {
+        Properties props = new Properties();
+        props.setProperty("hey", "true");
+        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        assertEquals(true, config.getBooleanPropertyWithDefault("hey", false));
+    }
+
+    @Test
+    public void test_getBooleanPropertyWithDefault_propertySetFalse() {
+        Properties props = new Properties();
+        props.setProperty("hey", "false");
+        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        assertEquals(false, config.getBooleanPropertyWithDefault("hey", true));
+    }
+
+    @Test
+    public void test_getBooleanPropertyWithDefault_propertyNotSet() {
+        Properties props = new Properties();
+        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+        assertEquals(true, config.getBooleanPropertyWithDefault("hey", true));
+        assertEquals(false, config.getBooleanPropertyWithDefault("hey", false));
+    }
+
+    @Test
+    public void test_getBooleanPropertyWithDefault_propertySetInvalid() {
+        Properties props = new Properties();
+        props.setProperty("hey", "yes");
+        Config config = (Config) callConstructorWithArguments(Config.class, null, props);
+
+        // Expect IllegalArgumentException for invalid boolean values
+        assertThrows(IllegalArgumentException.class, () -> {
+            config.getBooleanPropertyWithDefault("hey", false);
+        });
+    }
 }

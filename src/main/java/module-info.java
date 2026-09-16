@@ -3,6 +3,8 @@ module com.amazonaws.secretsmanager.jdbc {
     requires software.amazon.awssdk.services.secretsmanager;
     requires software.amazon.awssdk.regions;
     requires software.amazon.awssdk.utils;
+    requires software.amazon.awssdk.http;
+    requires software.amazon.awssdk.http.crt;
     requires aws.secretsmanager.caching.java;
     requires tools.jackson.databind;
 

@@ -32,7 +32,7 @@ The recommended way to use the SQL Connection Library is to consume it from Mave
 <dependency>
     <groupId>io.github.idontknowmyusername</groupId>
     <artifactId>aws-secretsmanager-jdbc</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.4</version>
 </dependency>
 ```
 
@@ -119,5 +119,14 @@ drivers.vpcEndpointRegion= #The endpoint region
 ```text
 drivers.region= #The region to use.
 ```
+
+3. Enable Post-Quantum TLS (PQTLS) by setting the following in the secretsmanager.properties file:
+
+```text
+drivers.postQuantumTlsEnabled=true
+```
+For more information about Post-Quantum TLS in the AWS SDK, see the [AWS SDK for Java documentation](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/http-configuration.html#post-quantum-tls).
+
+**NOTE**: PQ-TLS uses the AWS Common Runtime (CRT) which relies on system libraries and may not work as expected on macOS or Windows at this time ([ref](https://github.com/awslabs/aws-crt-java#tls-behavior)).
 
 If this driver is running on EKS, the library could pick up the credentials of the node it is running on instead of the service account role ([issue](https://github.com/aws/aws-secretsmanager-jdbc/issues/55)). To address this, add version `2` of `software.amazon.awssdk:sts` to your Gradle/Maven project file as a dependency.

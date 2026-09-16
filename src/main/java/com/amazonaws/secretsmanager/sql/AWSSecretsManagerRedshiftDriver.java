@@ -43,6 +43,27 @@ public final class AWSSecretsManagerRedshiftDriver extends AWSSecretsManagerDriv
     public static final String ACCESS_DENIED_FOR_USER_USING_PASSWORD_TO_DATABASE = "28P01";
 
     /**
+     * The PostgreSQL error code for invalid authorization specification.
+     *
+     * PostgreSQL returns 28000 for general authentication failures (e.g. pg_hba.conf rejection,
+     * certificate auth failure) as opposed to 28P01 which specifically indicates an invalid password.
+     *
+     * See <a href="https://www.postgresql.org/docs/current/errcodes-appendix.html">PostgreSQL documentation</a>.
+     */
+    public static final String ACCESS_DENIED_FOR_INVALID_AUTHORIZATION_SPECIFICATION = "28000";
+
+    /**
+     * The error code returned by PGBouncer when serving a cached authentication failure.
+     *
+     * When a server login fails, PGBouncer's check_fast_fail() rejects subsequent clients
+     * with SQLSTATE 08P01 (protocol_violation) instead of the original 28P01 from PostgreSQL.
+     * This is PGBouncer's default SQLSTATE for all disconnect_client() calls.
+     *
+     * See <a href="https://github.com/pgbouncer/pgbouncer/blob/master/src/objects.c">PGBouncer check_fast_fail()</a>.
+     */
+    public static final String PGBOUNCER_AUTH_FAILURE = "08P01";
+
+    /**
      * The Redshift JDBC sub-prefix.
      */
     public static final String SUBPREFIX = "redshift";
@@ -108,7 +129,9 @@ public final class AWSSecretsManagerRedshiftDriver extends AWSSecretsManagerDriv
     public boolean isExceptionDueToAuthenticationError(Exception e) {
         if (e instanceof SQLException sqle) {
             String sqlState = sqle.getSQLState();
-            return ACCESS_DENIED_FOR_USER_USING_PASSWORD_TO_DATABASE.equals(sqlState);
+            return ACCESS_DENIED_FOR_USER_USING_PASSWORD_TO_DATABASE.equals(sqlState)
+                || ACCESS_DENIED_FOR_INVALID_AUTHORIZATION_SPECIFICATION.equals(sqlState)
+                || PGBOUNCER_AUTH_FAILURE.equals(sqlState);
         }
         return false;
     }
